@@ -76,3 +76,58 @@ function runRuleChecks(rows) {
 
     return {findings: findings, passCount, totalChecks: findings.length};
 }
+
+
+//Rule implementations 
+
+function checkTotalBalance(row, rowNum) {
+    const totalExclVat = parseFloat(row.total_excl_vat);
+    const vatAmount = parseFloat(row.vat_amount);
+    const totalInclVat = parseFloat(row.total_incl_vat);
+
+    const ok = Math.abs((totalExclVat + vatAmount) - totalInclVat) < 0.01;
+    return {
+        rule: "TOTAL_BALANCE",
+        ok,
+        details: `Row ${rowNum}`
+    };
+}
+
+function checkLineMath(row, rowNum) {
+    for(let lines of row.lines) {
+        const qty = parseFloat(line.qty);
+        const unitPrice = parseFloat(line.unit_price);
+        const lineTotal = parseFloat(line.line_total);
+
+        if (Math.abs((qty * unitPrice) - lineTotal) > 0.01) {
+            return {
+                rule: "LINE_MATH",
+                ok: false,
+                details: `Invoice in row${rowNum}`
+            };
+        }
+    }
+
+    return{rule: "LINE_MATH", ok: true}
+}
+
+function checkDateISO(row, rowNum) {
+
+    const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+    const ok = isoDatePattern.test(row.date);
+    return {rule: "DATE_ISO", ok, value: row.date, details: `Row${rowNum}`};
+
+}
+
+function checkCurrencyAllowed(row, rowNum) {
+    const allowedCurrencies = ['AED', 'SAR', 'MYR', 'USD'];
+
+    const ok = allowedCurrencies.includes(row.currency);
+    return {rule: "CURRENCY_ALLOWED", ok, value: row.currency, details: `Row${rowNum}`};
+}
+
+function checkTrnPresent(row, rowNum) {
+    const ok = row.buyer_trn && row.buyer_trn.trim() !== '' && row.seller_trn && row.seller_trn.trim() !== '';
+    return {rule: "TRN_PRESENT", ok, details: `Row${rowNum}`};
+}
