@@ -93,3 +93,42 @@ function checkTrnPresent(row, rowNum) {
   const ok = row.buyer_trn && row.buyer_trn.trim() !== '' && row.seller_trn && row.seller_trn.trim() !== '';
   return { rule: "TRN_PRESENT", ok, details: `Row ${rowNum}` };
 }
+
+
+//calculate field 
+
+function calculateScores(coverage, ruleResults, questionnaire) {
+  const totalTargetFields = coverage.matched.length + coverage.close.length + coverage.missing.length;
+  const coverageScore = (coverage.matched.length / totalTargetFields) * 100;
+  const rulesScore = (ruleResults.totalChecks > 0) ? (ruleResults.passedCount / ruleResults.totalChecks) * 100 : 100;
+  const postureValues = Object.values(questionnaire || {});
+  const trueCount = postureValues.filter(val => val === true).length;
+  const postureScore = (trueCount / 3) * 100;
+  const dataScore = 100;
+  const overallScore = (dataScore * 0.25) + (coverageScore * 0.35) + (rulesScore * 0.30) + (postureScore * 0.10);
+
+  return {
+    data: Math.round(dataScore),
+    coverage: Math.round(coverageScore),
+    rules: Math.round(rulesScore),
+    posture: Math.round(postureScore),
+    overall: Math.round(overallScore),
+  };
+}
+
+//analyzing data 
+
+function analyzeData(rows, getsSchema, questionnaire) {
+  const userFields = Object.keys(rows[0] || {});
+  const coverageResult = calculateCoverage(userFields, getsSchema);
+  const ruleCheckResult = runRuleChecks(rows);
+  const scores = calculateScores(coverageResult, ruleCheckResult, questionnaire);
+
+  return {
+    scores: scores,
+    coverage: coverageResult,
+    ruleFindings: ruleCheckResult.findings,
+  };
+}
+
+module.exports = { analyzeData };
