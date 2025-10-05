@@ -131,3 +131,32 @@ function checkTrnPresent(row, rowNum) {
     const ok = row.buyer_trn && row.buyer_trn.trim() !== '' && row.seller_trn && row.seller_trn.trim() !== '';
     return {rule: "TRN_PRESENT", ok, details: `Row${rowNum}`};
 }
+
+
+//report card 
+
+function generateReportCard(coverage, ruleResults, questionnaire) {
+
+    const totalTargetFields = coverage.matched.length + coverage.close.length + coverage.missing.length;
+
+    const coverageScore = (coverage.matched.length / totalTargetFields) * 100;
+
+    const ruleScore = (ruleResults.passCount / ruleResults.totalChecks);
+
+    const questionnaireScore = Object.value(questionnaire || {});
+    const trueCount = questionnaireScore.filter(val => val === true).length;
+    const questionnaireScorePercent = (trueCount / 3) * 100;
+
+    const dataScore = 100;
+
+    const overallScore = 
+    (dataScore * 0.25) + (coverageScore * 0.35) + (ruleScore * 0.30) + (questionnaireScorePercent * 0.10);
+
+    return {
+        data: Math.round(dataScore),
+        coverage: Math.round(coverageScore),
+        rules: Math.round(ruleScore),
+        posture: Math.round(questionnaireScorePercent),
+        overall: Math.round(overallScore)
+    };
+}
