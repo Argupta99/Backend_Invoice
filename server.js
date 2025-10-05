@@ -5,6 +5,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDatabase = require('./config/db');
+const uploadRoute = require('./routes/uploadRoute');
 const app = express();
 
 connectDatabase();
@@ -14,7 +15,12 @@ connectDatabase();
 app.use(cors());
 app.use(express.json());
 
-const port = process.env.port || 5000;
+
+//routes
+app.use('/upload', uploadRoute);
+
+const port = process.env.PORT || 5000;
+
 app.listen(port, () => {
 console.log(`server is running`);
 });
