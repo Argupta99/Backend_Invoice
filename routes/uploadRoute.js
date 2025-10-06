@@ -2,7 +2,11 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const Upload = require('../models/uploadModel');
+const {analyzeData} = require('../utils/analysisEngine');
+const Report = require('../models/reportModel');
+const getSchema = require('../utils/get_schema.json');
 
+console.log('uploadRoute.js loaded!');
 
 //multer setup: storage of memory / file in RAM
 const storage = multer.memoryStorage();
@@ -46,13 +50,11 @@ else if (req.file.originalname.endsWith('.csv')) {
  data = rows.slice(1).map(line => {
     const values = line.split(',');
     const obj = {};
-    headers.forEach((h, i) => {
+    headers.forEach((h, i) => { // <-- forEach starts here
         obj[h.trim()] = values[i]? values[i].trim() : '';
-    }
-);
-
-return obj;
- });
+    }); // <-- forEach must be closed here
+    return obj;
+});
 
 } 
 
@@ -67,6 +69,83 @@ res.json({uploadId: uploadedDoc._id});
 } catch (error) {
     console.log (error);
     res.status(500).json({message: 'Upload failed'});
+}
+
+}); 
+
+
+// DEBUG: Simple /analyze test route to verify it's hit
+router.post('/analyze', async (req, res) => {
+    console.log('Analyze route hit!', req.body);
+    res.json({ test: 'ok' });
+});
+
+
+//Post analyze route 
+
+router.post('/analyze', async(req, res) => {
+    
+
+    try {
+    const {uploadId, questionnaire } = req.body;
+
+    if(!uploadId) {
+        return res.status(400).json({message: 'uploadId is required'});
+    }
+const uploadDoc = await Upload.findById(uploadId);
+    if (!uploadDoc) {
+      return res.status(404).json({ message: 'Upload not found' });
+    }
+
+    const analysisResult = analyzeData(uploadDoc.rows, getSchema, questionnaire);
+    const reportDoc = new Report({
+        uploadId: uploadId,
+        scores: analysisResult.scores,
+        coverage: analysisResult.coverage,
+        ruleFindings: analysisResult.ruleFindings,   
+    });
+
+    //saving report doc to database
+    await reportDoc.save();
+
+    const finalReport = {
+        reportId: reportDoc._id,
+        ...analysisResult,
+        meta: {
+            rowsParsed: uploadDoc.rows.length,
+            db: 'mongodb',
+        }
+    };
+
+    res.json(finalReport);
+} catch (error) {
+    console.log(error);
+    res.status(500).json({message: 'Analysis failed'});
+}
+
+});
+
+//route for shareable link to get report by id
+
+router.get('/report/:reportId', async(req, res) => {
+try {
+    const {reportId} = req.params;
+    const report = await Report.findById(reportId);
+
+    if(!report) {
+        return res.status(404).json({message: 'Report not found'});
+    }
+
+    const finalReport = {
+        reportId: report._id,
+        scores: report.scores,
+        coverage: report.coverage,
+        ruleFindings: report.ruleFindings,
+    };
+    res.json(finalReport);
+} catch (err) {
+    console.error("Failed to fetch report", err);
+    res.status(500).json({message: 'Failed to fetch report'});
 }
 
 });
