@@ -21,6 +21,11 @@ app.use('/upload', uploadRoute);
 
 const port = process.env.PORT || 5000;
 
+app.get("/", (req, res) => {
+  res.send("Backend is running fine!");
+});
+
+
 app.listen(port, () => {
 console.log(`server is running`);
 });
