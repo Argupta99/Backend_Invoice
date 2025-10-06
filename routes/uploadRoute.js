@@ -75,10 +75,10 @@ res.json({uploadId: uploadedDoc._id});
 
 
 // DEBUG: Simple /analyze test route to verify it's hit
-router.post('/analyze', async (req, res) => {
-    console.log('Analyze route hit!', req.body);
-    res.json({ test: 'ok' });
-});
+//router.post('/analyze', async (req, res) => {
+   // console.log('Analyze route hit!', req.body);
+    //res.json({ test: 'ok' });
+//});
 
 
 //Post analyze route 
